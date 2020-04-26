@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "1004205200046",
+    "firebase_url": "https://stopcovid19-dj.firebaseio.com/",
+    "project_id": "lib-care",
+    "storage_bucket": "lib-care.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1004205200046:android:404a614232d7701d",
+        "android_client_info": {
+          "package_name": "com.locnaute.libcare"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1004205200046-035chp5ruuoup29htlb0o62bq4spkba5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.locnaute.libcare",
+            "certificate_hash": "a45123094c0e7500d463b5f928ab72122b33f86b"
+          }
+        },
+        {
+          "client_id": "1004205200046-utkmpctn4c2sl48d0p3ru6q2jg9o6jbg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB28kUYRDFoPF1caIQd5IK9NxNsujgwhL4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1004205200046-utkmpctn4c2sl48d0p3ru6q2jg9o6jbg.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1004205200046-m1hi17apcv4l55qu2shil8gnnivn2h93.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.locnaute.libcare"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
