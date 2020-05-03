@@ -1,10 +1,11 @@
-import { StackActions } from 'react-navigation';
+import { CommonActions } from '@react-navigation/native';
 
-export function resetStack(navitagion, routeName) {
-  const resetActions = StackActions.reset({
-    index: 0,
-    actions: [StackActions.push({ routeName })],
-  });
-
+export function resetStack(navitagion:any, routeName:string) {
+  const resetActions = CommonActions.reset({
+                        index: 1,
+                        routes: [
+                          { name: routeName }
+                        ],
+                      })
   navitagion.dispatch(resetActions);
 }

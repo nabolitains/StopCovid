@@ -1,315 +1,268 @@
-import React, { useEffect, useContext } from 'react'
+import React, {Component} from 'react'
 import {
-  AppState,
-  AppStateStatus,
   ScrollView, 
-  
+  Animated, 
+  View,
+  Easing,
 } from 'react-native'
-import PushNotificationIOS from '@react-native-community/push-notification-ios'
-import * as Permissions from 'expo-permissions' 
-import { useTranslation, withTranslation } from 'react-i18next'
-import { UserContext } from '../../../context/user'
+import { withTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
-import Colors from '../../../constants/Colors'
-import { CtaButton, UrlButton } from '../../../components/Button/Button'
 import { AuthConsumer } from '../../../context/authentication'
-import { getPoints } from '../../../tracking'
+import AppShell, {Content} from '../../../components/AppShell'
+import Text, { Heading } from '../../../components/ui/Text'
+import i18n from "i18next";
+import initI18n from '../../../i18n'
+import {
+  List,
+  ListItem,
+  Left,
+  Card,
+  Right,
+} from 'native-base'
+import LottieView from 'lottie-react-native';
+
+import update from 'immutability-helper';
+import { resetStack } from '../../../utils/navigation'
+import * as Permissions from 'expo-permissions' 
+import { hasPhonePermission, hasLocationPermission } from '../../../Services/PermissionRequests';
+import { registerPushNotifications } from '../../../push-notifications'
+
 import {
   initBackgroundTracking,
   stopBackgroundTracking,
 } from '../../../tracking'
-import { registerPushNotifications } from '../../../push-notifications'
-import AppShell, { Content } from '../../../components/AppShell'
-import Text, { Heading } from '../../../components/ui/Text'
-import { ButtonGroup } from '../../../components/Button'
-import bullHorn from '../../../assets/images/bullhorn.png'
-import { scale } from '../../../utils'
-import { resetStack } from '../../../utils/navigation'
-import { Vertical } from '../../../components/ui/Spacer'
-import messaging from '@react-native-firebase/messaging'
-import Footer from '../../../components/Footer'
-import { AuthenticationError } from '../../../api/ApiClient'
-import  MapsView  from  '../../../components/MapsView'
-import { useAlert } from '../../../context/alert'
-import auth from '@react-native-firebase/auth'
-//import  {startInstance, scanAndConnect} from  "../../../proximity"
-//import FooterUser from '../../../components/FooterUser'
+import BLEBackgroundService from '../../../Services/BLEBackgroundService';
+import BackgroundTaskServices from '../../../Services/BackgroundTaskService'
+import DeviceInfo from 'react-native-device-info';
+import { sync, readyToUploadCounter } from '../../../Helpers/SyncDB';
+import  auth  from  '@react-native-firebase/auth'
+import  database  from  '@react-native-firebase/database'
+import { map } from 'lodash'
 
-import BackgroundGeolocation from '@mauron85/react-native-background-geolocation'
-import { Button, View } from 'native-base'
+//init language preference
+initI18n()
 
-const privacyUrls = {
-  en: 'https://www.libcare.net/app/privacystatement',
-  pl: 'https://www.libcare.net/app/privacystatement-po',
-  is: 'https://www.libcare.net/app/personuverndarstefna',
-  fr: 'https://www.libcare.net/app/personuverndarstefna',
-}
+class HomeScreen extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+        powerProgress:new Animated.Value(0),
+        contacts:[],
+        powerPlay:false,
+        progress:new Animated.Value(0),
+        deviceSerial:'',
+        devicesFound:[], 
+        scanStatus:'',
+        broadcastStatus:'', 
+        bluetoothStatus:'',
+        locationPermission: false,
+        phonePermission: false,
+        readyToUpload: 0,
+    }
+  }
+  
+  refreshReadyToUpload() {
+    readyToUploadCounter().then(toUpload => {
+      this.setState({readyToUpload: toUpload});
+    });
+  }
 
-const links = {
-  en: {
-    primary: ['avoidInfection', 'possibleInfection', 'isolation', 'quarantine'],
-    secondary: [
-      'groupsAtRisk',
-      'seniorCitizens',
-      'childrenAndTeens',
-      'worriesAndAnxiety',
-      'workplaces',
-      'travel',
-      'foodPetsAndAnimals',
-      'tourists',
-      'riskAreas',
-    ],
-  },
-  is: {
-    primary: ['avoidInfection', 'possibleInfection', 'isolation', 'quarantine'],
-    secondary: [
-      'groupsAtRisk',
-      'seniorCitizens',
-      'childrenAndTeens',
-      'worriesAndAnxiety',
-      'workplaces',
-      'travel',
-      'foodPetsAndAnimals',
-      'riskAreas',
-    ],
-  },
-  pl: {
-    primary: ['avoidInfection', 'possibleInfection', 'isolation', 'quarantine'],
-    secondary: [
-      'groupsAtRisk',
-      'seniorCitizens',
-      'childrenAndTeens',
-      'worriesAndAnxiety',
-      'workplaces',
-      'travel',
-      'foodPetsAndAnimals',
-      'riskAreas',
-    ],
-  },
-  fr: {
-    primary: ['avoidInfection', 'possibleInfection', 'isolation', 'quarantine'],
-    secondary: [
-      'groupsAtRisk',
-      'seniorCitizens',
-      'childrenAndTeens',
-      'worriesAndAnxiety',
-      'workplaces',
-      'travel',
-      'foodPetsAndAnimals',
-      'riskAreas',
-    ],
-  },
-}
+  onDevice(device) {
+    console.log('[onDevice]====>',device)
+    let index = -1;
+    for(let i=0; i< this.state.devicesFound.length; i++){
+      if (this.state.devicesFound[i].serial == device.serial) {
+        index = i;
+      }
+    }
+    if (index<0) {
+      let dev = {serial:device.serial, name:device.name, rssi:device.rssi, start:device.date, end:device.date};
+      this.setState({
+        devicesFound: update(this.state.devicesFound, 
+          {$push: [dev]}
+        )
+      });
+    } else {
+      const itemIndex = index;
+      this.setState({
+        devicesFound: update(this.state.devicesFound, 
+          {[itemIndex]: {end: {$set: device.date}, rssi: {$set: device.rssi || this.state.devicesFound[itemIndex].rssi }}}
+        )
+      });
+    }
 
-const smallBtnStyle = {
-  width: '48.5%',
-}
+    this.refreshReadyToUpload();
+  }
 
-const HomeScreen = ({ navigation, i18n, logout, getUid }) => {
-  const {
-    t,
-    i18n: { language },
-  } = useTranslation()
-  const { fetchUser, clearUserData } = useContext(UserContext)
-  const { createAlert } = useAlert()
+  onScanStatus(status) {
+    this.setState({
+      scanStatus: status.toString(),
+      devicesFound:[]
+    });
+  }
 
-  // Check if we still have location access
-  const checkLocationPermission = async () => {
+  onBroadcastStatus(status) {
+    this.setState({
+      broadcastStatus: status.toString(),
+      devicesFound:[]
+    });
+  }
+
+  onBluetoothStatus(status) {
+    this.setState({
+      bluetoothStatus: status.toString()
+    });
+  }
+
+  setID(id) {
+    this.setState({ deviceSerial: id });
+    BLEBackgroundService.setServicesUUID(id);
+    this.start(); 
+  }
+  checkLocationPermission = async () => {
     const { status } = await Permissions.getAsync(Permissions.LOCATION)
+    console.log('status===>',status)
     if (status !== 'granted') {
       resetStack(navigation, 'Permission')
     }
-    return status === 'granted'
-  }
-
-  const logoutUser = () => {
-    navigation.navigate({ routeName: 'LoggedOut' })
-    stopBackgroundTracking()
-    logout()
-    clearUserData()
-  }
-
-  // Check if user has been requested to share data
-  const checkUser = async () => {
     
-    try {
-      const user = auth().currentUser
-      
-      //console.log('user==>', user)
-      if (user) {
-        //console.log('user.userDatat==>', userRequestData)
-        if (Platform.OS === 'ios') {
-          // Reset badge on app icon
-          PushNotificationIOS.setApplicationIconBadgeNumber(0)
+    const phonePermissions = await hasPhonePermission()
+    if (phonePermissions !== 'Yes') {
+      resetStack(navigation, 'Permission')
+    }
+    return status === 'granted' && phonePermissions === "Yes"
+  }
+  async componentDidMount(){    
+    const {t} = this.props
+   await initBackgroundTracking(t('trackingTitle'), t('trackingNotification'))
+   await registerPushNotifications() 
+
+    BackgroundTaskServices.start()
+    
+    Animated.timing(this.state.progress, {
+      toValue: 1,
+      duration: 5000,
+      easing: Easing.linear,
+    }).start();
+    BLEBackgroundService.init();
+    BLEBackgroundService.addNewDeviceListener(this);
+    BLEBackgroundService.requestBluetoothStatus();  
+    this.refreshReadyToUpload();
+
+    this.authorizeCollect()
+
+    this.getContacts()
+  }
+  getContacts = ()  =>  {
+    const user  = auth().currentUser
+    if(user){
+      const refGetContacts =  database().ref(`users/${user.uid}/contacts`)
+      refGetContacts.once('value').then((datasnapshot)=>{
+        if(datasnapshot.exists()){
+          this.setState({contacts:datasnapshot.val()})
         }
-        resetStack(navigation, 'RequestData')
-        return null
-      }
-
-      return user
-    } catch (error) {
-      
-      if (error instanceof AuthenticationError) {        
-        //logoutUser()
-      } else {
-        console.log('-------------------------checkUser else { error===>', error)
-        console.error(error)
-      }
-
-      return null
+      })
     }
+   
+  }
+  componentWillUnmount() { 
+    BLEBackgroundService.removeNewDeviceListener(this);
   }
 
-  async function validateState() {
-    if (!(await checkUser())) {
-      return
-    }
-
-    if (!(await checkLocationPermission())) {
-      return
-    }
-
-    return true
+  authorizeCollect = () =>{    
+    DeviceInfo.getSerialNumber().then(deviceSerial => {
+        if (deviceSerial && deviceSerial !== "unknown") { 
+          this.setID(deviceSerial);
+        } else {
+          DeviceInfo.getDeviceName().then(deviceName => {
+              this.setID(deviceName);
+          });
+        }
+      });
   }
 
-  /**
-   * @param {AppStateStatus} state
-   */
-  function onAppStateChange(state) {
-    if (state === 'active') {
-      validateState()
-    }
+  start() {
+    BLEBackgroundService.enableBT();
+    BLEBackgroundService.start();
+
+    this.setState({
+      isLogging: true,
+    });
+
+    sync();
   }
 
-  useEffect(() => {
-    (async () => { 
-        initBackgroundTracking(t('trackingTitle'), t('trackingNotification'))
-        registerPushNotifications() 
-    })()
-  }, [])
+  stop(){
+    BLEBackgroundService.stop();
 
-  useEffect(() => {
-    const unsubscribePushMessage = messaging().onMessage(checkUser)
-    AppState.addEventListener('change', onAppStateChange)
+    this.setState({
+      isLogging: false,
+    });
 
-    return () => {
-      unsubscribePushMessage()
-      AppState.removeEventListener('change', onAppStateChange)
-    }
-  }, [])
-  
- //footer={//<FooterUser navigation={navigation} resetStack={resetStack} />}
+    sync();
+  }
 
-  return (
-    <AppShell  title={t('trackingTitle')} subtitle={t('trackingSubtitle')}>
-      <View style={{display:"flex", flexDirection:"row",flex:0.1, justifyContent:"space-around",padding:5}}> 
-        <Button onPress={()=>resetStack(navigation, 'RequestData')} success arrondi>
-          <Text style={{padding:15,color:"#ffff"}}>
-            Envoyer Mes Données
-          </Text>
-        </Button>
-        <Button onPress={()=>resetStack(navigation, 'Maps')} light arrondi>
-          <Text style={{padding:15,color:"#ffff"}}>
-            Maps
-          </Text>
-        </Button>
-        <Button onPress={()=>resetStack(navigation, 'Pass')} arrondi info>
-          <Text style={{padding:15,color:"#ffff"}}>
-            Mon Pass
-          </Text>
-        </Button>
-      </View>
-      <ScrollView>
-        <Content>
-          <Heading level={3}>{t('aboutCovidTitle')}</Heading>
-          <Text>{t('aboutCovidDescription')}</Text>
-          <ButtonGroup>
-            <UrlButton
-              align="left"
-              justify="start"
-              href={t('announcementsLink')}
-              image={bullHorn}
-              imageDimensions={{ height: scale(26), width: scale(26) }}
-            >
-              {t('announcements')}
-            </UrlButton>
-            {links[language].primary.map(link => (
-              <UrlButton
-                key={link}
-                justify="start"
-                href={t(`${link}Link`)}
-                align="left"
-                bgColor={Colors.text}
-              >
-                {t(`${link}Label`)}
-              </UrlButton>
-            ))}
-          </ButtonGroup>
+  onClearArray = () => {
+    this.setState({ devicesFound: [] });
+  };
 
-          <Vertical unit={0.5} />
+  dateDiffSecs(start, end) {
+    return Math.floor((end.getTime() - start.getTime())/1000);
+  }
 
-          <ButtonGroup row>
-            {links[language].secondary.map(link => (
-              <UrlButton
-                key={link}
-                href={t(`${link}Link`)}
-                bgColor={Colors.orange}
-                style={smallBtnStyle}
-                color={Colors.textDark}
-                small
-              >
-                {t(`${link}Label`)}
-              </UrlButton>
-            ))}
-          </ButtonGroup>
-
-          <Vertical unit={1} />
-
-          <ButtonGroup>
-            <UrlButton bgColor={Colors.backgroundAlt} href={t('covidLink')}>
-              <Text center>
-                {t('covidLabel')}{' '}
-                <Text bold color={Colors.blue}>
-                  libcare.net
-                </Text>
-              </Text>
-            </UrlButton>
-
-            <UrlButton
-              bgColor={Colors.backgroundAlt}
-              href={privacyUrls[i18n.language] || privacyUrls.en}
-            >
-              <Text center>{t('privacyPolicy')}</Text>
-            </UrlButton>
-
-            <CtaButton
-              bgColor={Colors.backgroundAlt}
-              onPress={() => {
-                createAlert({
-                  type: 'info',
-                  message: t('uninstallAppToast'),
-                })
-              }}
-            >
-              <Text center>{t('stopTracking')}</Text>
-            </CtaButton>
-          </ButtonGroup>
-
-          <Vertical unit={2} />
-
-          <Footer />
-
-          <Vertical unit={1} />
-
-          {__DEV__ && (
-            <CtaButton bgColor={Colors.gray} onPress={logoutUser}>
-              Dev only log out
-            </CtaButton>
-          )}
-        </Content>
-      </ScrollView>
-    </AppShell>
-  )
+  dateStr(dt) {
+    return Moment(dt).format('H:mm:ss');
+  }
+  render() {
+    
+    return (
+      <AppShell>      
+        <ScrollView>
+          <Content >
+            <View style={{display:'flex',flexDirection:'column',justifyContent:"center",alignContent:'center', alignItems:'center'}}>
+              {
+                (this.state.devicesFound.length>0)
+                ? this.state.devicesFound.map((device, key)=>(
+                    <View key={key} style={{backgroundColor:'blue', borderRadius:50, width:10,height:10,position:"absolute",zIndex:15,top:Math.abs(device.rssi)}}>
+                    </View>
+                  ))
+                :null
+              }            
+              </View>
+              <LottieView style={{display:"flex", flex:0.7}} autoPlay loop autoSize source={require("./assets/radar.json")} progress={this.state.progress} />                     
+          </Content>  
+          {
+            (this.state.contacts.length<=0)
+            ?null
+            :(
+              <Card style={{marginTop:-195, backgroundColor:"#346564"}}>
+                <List >
+                  <ListItem selected>
+                    <Heading invert level={3}>
+                    {
+                      i18n.t('contacteDeproximity')
+                    }
+                    </Heading>
+                  </ListItem>
+                  {
+                    this.state.contacts.map((contactPush,index)=>(
+                          <ListItem key={index}>
+                              <Left>
+                                <Text invert>{index+1}    |    </Text>
+                                <Text invert>{contactPush.contact}</Text>
+                              </Left>
+                          </ListItem>
+                        )
+                      )
+                  }
+                </List>
+              </Card>
+            )
+          }                      
+        </ScrollView>
+      </AppShell>
+    )
+  }
 }
 
 HomeScreen.propTypes = {

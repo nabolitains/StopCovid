@@ -5,11 +5,13 @@
         "esModuleInterop": true,
         "jsx": "react-native",
         "lib": ["es6"],
-        "module": "es6",
         "moduleResolution": "node",
         "noEmit": true,
         "noImplicitAny": true,
-        "target": "es6"
+        "emitDecoratorMetadata":true,
+        "experimentalDecorators": true,
+        "module": "commonjs",
+        "target": "es6",
       },
       "exclude": ["node_modules"]
     }

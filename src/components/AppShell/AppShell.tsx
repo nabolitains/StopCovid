@@ -1,9 +1,7 @@
 import React, { ReactNode } from 'react';
 import styled from 'styled-components/native';
 import { scale, verticalScale } from '../../utils/index';
-import { withNavigation } from 'react-navigation';
 import Colors from '../../constants/Colors';
-import color from 'color';
 import {
   SafeAreaView,
   Platform,
@@ -12,7 +10,6 @@ import {
   ViewStyle,
   KeyboardAvoidingView,
   ScrollView,
-  StyleSheetProperties,
 } from 'react-native';
 import Text, { Heading } from '../ui/Text';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -92,14 +89,14 @@ interface Props {
   scrollContainerStyles?: StyleProp<ViewStyle>;
 }
 
-function AppShell({
+const AppShell = ({
   title,
   subtitle,
   children,
   alt,
   footer,
   scrollContainerStyles,
-}: Props) {
+}: Props) => {
   const { fontScale } = useWindowDimensions();
   const showHeader = title || subtitle;
   const isFixed = isNaN(fontScale) || fontScale < 2;
@@ -164,4 +161,4 @@ function AppShell({
   );
 }
 
-export default withNavigation(AppShell);
+export default AppShell

@@ -5,7 +5,7 @@ import { changeLanguage, languages } from '../../i18n/index';
 import Colors from '../../constants/Colors';
 import { ButtonGroup, CtaButton } from '../Button/index';
 import { verticalScale, scale } from '../../utils/index';
-import { withNavigation } from 'react-navigation'; 
+import { withNavigation } from '@react-navigation/compat'; 
 import { Content } from '../AppShell';
 
 const AllLanguages = styled.View`

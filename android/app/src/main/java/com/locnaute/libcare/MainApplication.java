@@ -1,9 +1,9 @@
 package com.locnaute.libcare;
 
 import android.app.Application;
-
 import com.facebook.react.PackageList;
 import com.facebook.react.ReactApplication;
+import com.th3rdwave.safeareacontext.SafeAreaContextPackage;
 import com.marianhello.bgloc.react.BackgroundGeolocationPackage;
 import com.facebook.react.ReactNativeHost;
 import com.facebook.react.ReactPackage;

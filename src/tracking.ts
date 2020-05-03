@@ -2,7 +2,8 @@ import { Linking, Platform } from 'react-native';
 import * as Permissions from 'expo-permissions';
 import BackgroundGeolocation, { BackgroundGeolocationError } from '@mauron85/react-native-background-geolocation';
 import config from './config'
-import { MapsViewState } from './components/MapsView/MapsView';
+import { MapsViewState } from './router/logged-in/screens/MapsView/MapsView';
+import Geolocation from 'react-native-geolocation-service'
 
 export enum LocationPermission {
   NOT_AUTHORIZED = BackgroundGeolocation.NOT_AUTHORIZED,
@@ -150,7 +151,7 @@ export function getPoints():Promise<Array<{lat: number,lon: number,acc: number,t
           time: Math.round(location.time),
           speed: Math.round(location.speed || 0),
         }))
-        console.log("cleaned ===>", cleaned)
+        //console.log("cleaned ===>", cleaned)
         resolve(cleaned);
       },
       error => reject(error),
@@ -160,22 +161,25 @@ export function getPoints():Promise<Array<{lat: number,lon: number,acc: number,t
 
 export function getCurrentLocalisation ():Promise<MapsViewState| never> {
   return new Promise((resolve, reject) => {
-    BackgroundGeolocation.getCurrentLocation(
-      location => {        
-        const coordinate ={
-          latitude: trimLocation(location.latitude),
-          longitude: trimLocation(location.longitude),
-          accuracy: Math.round(location.accuracy),
-          altitude: location.altitude,
-          timestamp: location.time,
-          speed: location.speed,
-          heading: location.bearing,
-          isFromMockProvider: location.isFromMockProvider
-        }
-        console.log("coordinate ===>", coordinate)
-        resolve({...coordinate});
-      },
-      error => reject(error),
-    );
-  });  
+        Geolocation.getCurrentPosition((position) => {
+            const location:Geolocation.GeoCoordinates = position.coords
+            const coordinate ={
+              latitude: location.latitude,
+              longitude: location.longitude,
+              accuracy: location.accuracy,
+              altitude: location.altitude,
+              timestamp: position.timestamp,
+              speed: location.speed,
+              isFromMockProvider: position.mocked
+            }
+            resolve({...coordinate});
+          },(error) => {
+              // See error code charts below.
+              console.log(error.code, error.message);
+              reject(error)
+          },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+      )
+    })
+
 }

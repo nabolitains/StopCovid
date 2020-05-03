@@ -1,7 +1,6 @@
 import React, { useEffect, useState, ReactNode } from 'react';
 import {
   Platform,
-  ScrollView,
   Linking,
   AppState,
   AppStateStatus,
@@ -12,18 +11,17 @@ import { Trans, WithTranslation } from 'react-i18next';
 import { CtaButton } from '../../../components/Button/Button';
 import { useTranslation, withTranslation } from 'react-i18next';
 import { AuthConsumer } from "../../../context/authentication"
-import { initBackgroundTracking } from '../../../tracking';
 import AppShell, { Content } from '../../../components/AppShell';
 import Text, { Heading } from '../../../components/ui/Text';
 import LoadingScreen from "../../../components/LoadingScreen"
 import { resetStack } from '../../../utils/navigation';
 import { Vertical } from '../../../components/ui/Spacer';
 import Footer from '../../../components/Footer';
+import {hasPhonePermission, requestLocationPermission} from '../../../Services/PermissionRequests'
 import { scale } from '../../../utils';
 
 // @ts-ignore
 import covidIcon from '../../../assets/images/covid-icon.png';
-import { NavigationStackScreenOptions, NavigationTabScreenOptions, NavigationNavigatorProps } from 'react-navigation';
 
 const isIOS = Platform.OS === 'ios';
 
@@ -73,7 +71,7 @@ const AllowLocationScreen = ({ navigation }:any) => {
       const hasScopeAlways = locationPermission.ios?.scope === 'always';
 
       if (!isIOS || hasScopeAlways) {
-        resetStack(navigation, 'Home');
+        resetStack(navigation, 'LoggedInStackTabs');
         return true;
       }
 
@@ -86,18 +84,25 @@ const AllowLocationScreen = ({ navigation }:any) => {
     return false;
   }
 
-  function getPermission() {
+  async function getPermission() {
     if (settingsIssue) {
       return Linking.openSettings();
     }
 
-    Permissions.askAsync(Permissions.LOCATION)
+    requestLocationPermission().catch(()=>{
+      Permissions.askAsync(Permissions.LOCATION)
       .then(handlePermission)
       .then(hasPermission => {
         if (!hasPermission) {
           setDidAsk(true);
         }
       })
+    })
+    const phonePermissions = await hasPhonePermission()
+    if (phonePermissions !== 'Yes') {
+        setDidAsk(true);
+    }
+
     
   }
 
@@ -171,8 +176,6 @@ AllowLocationScreen.propTypes = {
     navigate: PropTypes.func.isRequired,
   }).isRequired,
 };
-type ScreenType = NavigationNavigatorProps<any, any> | React.ComponentType<Pick<WithTranslation, never>>
-
 
 const Screen = withTranslation()( ({ ...props }) => (
   <AuthConsumer>

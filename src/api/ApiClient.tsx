@@ -139,8 +139,7 @@ class ApiClient {
   post(url:any, body:any) {
     if (!this.getToken()) {
       return
-    }
-    
+    }    
     return safeFetch(url, this.token, this.uid, {
       method: 'POST',
       body: JSON.stringify(body),

@@ -13,7 +13,7 @@ const Wrapper = styled.View`
 
 const Footer = () => (
   <Wrapper> 
-    <Text>Qsolution Services. Djibouti</Text> 
+    <Text>Qsolution Service Sarl. Djibouti</Text> 
   </Wrapper>
 );
 

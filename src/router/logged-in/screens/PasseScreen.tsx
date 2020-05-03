@@ -1,14 +1,14 @@
 import React from 'react'
 import { View, Image,Text } from "react-native"
 import {Button} from 'native-base'
-import {withNavigation} from 'react-navigation'
-import { resetStack } from '../../../utils/navigation'
+import {withNavigation} from "@react-navigation/compat"
+//import { resetStack } from '../../../utils/navigation'
 
 const PasseScreen = ({navigation}:any) => {
     return(
         <View style={{display:"flex",flex:1,flexDirection:'column',justifyContent:'center',alignContent:'center'}}>
             <View>
-                <Button style={{width:100,height:30,padding:15}} onPress={()=>resetStack(navigation, 'Home')} light>
+                <Button style={{width:100,height:30,padding:15}} light>
                     <Text>Revenir</Text>
                 </Button>
             </View>
