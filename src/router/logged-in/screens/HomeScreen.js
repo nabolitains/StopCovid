@@ -124,13 +124,11 @@ class HomeScreen extends Component {
     console.log('status===>',status)
     if (status !== 'granted') {
       resetStack(navigation, 'Permission')
-      return
     }
     
     const phonePermissions = await hasPhonePermission()
     if (phonePermissions !== 'Yes') {
       resetStack(navigation, 'Permission')
-      return
     }
     return status === 'granted' && phonePermissions === "Yes"
   }
