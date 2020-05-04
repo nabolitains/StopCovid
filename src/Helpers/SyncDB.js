@@ -24,12 +24,12 @@ export async function readyToUploadCounter() {
     return ks.filter(key => key.startsWith(CONTACT)).length;
 }
 
-async function upload1000Keys() {
+async function upload1000Keys(background) {
     let uid = await AsyncStorage.getItem(UID)
     const points = await getPoints()
     // Send geolocation data to the API.
     uid=uid
-    logPoints(points, uid)
+    logPoints(points, uid, background)
 
     AsyncStorage.getAllKeys().then(ks => {
     let keysToUpload = ks.sort().filter(key => key.startsWith(CONTACT)).slice(0,10000);
@@ -38,7 +38,7 @@ async function upload1000Keys() {
                 keys = data.map(keyValue => keyValue[0]);
                 values = data.map(keyValue => JSON.parse(keyValue[1]));
                 
-                uploadContacteList(values, uid).then(response => {
+                uploadContacteList(values, uid, background).then(response => {
                     if (response.status == 200) {
                         AsyncStorage.multiRemove(keys);
                     }
@@ -54,10 +54,10 @@ async function isOnline() {
     return fetch(config.covidApiUrl, { method: "GET", headers: ACCEPT_JSON } );
 }
 
-export async function sync () {
+export async function sync (background) {
     isOnline().then(response => {
         if (response.status == 200) { // is online
-            upload1000Keys();
+            upload1000Keys(background);
         }
     }).catch(error => {
         console.log("Phone Offline", error); 

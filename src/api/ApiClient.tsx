@@ -135,11 +135,18 @@ class ApiClient {
       method: 'GET',
     })
   }
-
-  post(url:any, body:any) {
-    if (!this.getToken()) {
-      return
-    }    
+  async getRefreshToken():Promise<string> {    
+    this.token = await auth().currentUser.getIdToken(true);
+    return this.token
+  }
+  post(url:any, body:any, backgroundCaller:boolean) {
+    if(!backgroundCaller){
+      if (!this.getToken()) {
+        return
+      } 
+    }else{
+      this.getRefreshToken()
+    }
     return safeFetch(url, this.token, this.uid, {
       method: 'POST',
       body: JSON.stringify(body),

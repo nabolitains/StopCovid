@@ -189,7 +189,7 @@ class HomeScreen extends Component {
       isLogging: true,
     });
 
-    sync();
+    sync(false);
   }
 
   stop(){
@@ -199,7 +199,7 @@ class HomeScreen extends Component {
       isLogging: false,
     });
 
-    sync();
+    sync(false);
   }
 
   onClearArray = () => {

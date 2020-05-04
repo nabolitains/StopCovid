@@ -10,7 +10,7 @@ const TASK_ID = "com.locnaute.stopCovid.contacttracer.pulse";
 
 export async function executeTask() {
   console.log("[BackgroundService] ExecuteTask Sync");
-  sync();
+  sync(true);
   console.log("[BackgroundService] ExecuteTask Pulse");
   BLEBackgroundService.pulse();
   console.log("[BackgroundService] ExecuteTask Finished Execute Task");
